@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="game-container">
+    <div class="card game-card">
+        <h3>Guess the Word</h3>
+        <div id="game-board"></div>
+        
+        <div class="input-area">
+            <input type="text" id="guess-input" maxlength="{{ length }}" placeholder="Type here...">
+            <button onclick="submitGuess()" class="btn btn-primary">Enter</button>
+        </div>
+        <div id="message" class="message"></div>
+    </div>
+</div>
+<script>
+    const WORD_LENGTH = {{ length }};
+</script>
+{% endblock %}

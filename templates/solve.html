@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="solver-container">
+    <div class="controls">
+        <select id="len-select" onchange="window.location.href='/solve?len='+this.value">
+            <option value="4" {% if length==4 %}selected{% endif %}>4 Letters</option>
+            <option value="5" {% if length==5 %}selected{% endif %}>5 Letters</option>
+            <option value="6" {% if length==6 %}selected{% endif %}>6 Letters</option>
+        </select>
+        <span class="badge">English</span>
+    </div>
+
+    <div class="two-col-layout">
+        <!-- Input Section -->
+        <div class="card input-card">
+            <h3>Input Constraints</h3>
+            <p class="subtitle">Ketik kata, lalu <b>klik kotak</b> untuk ganti warna.</p>
+
+            <div id="board-container">
+                <!-- Row template akan ditambahkan via JS -->
+            </div>
+
+            <button class="btn btn-full" onclick="addSolverRow()">+ Add Row</button>
+            <br><br>
+            <button class="btn btn-primary btn-full" onclick="analyzeSolver()">FIND WORDS</button>
+        </div>
+
+        <!-- Result Section -->
+        <div class="card result-card">
+            <h3 id="result-count">0 Words Found</h3>
+            <div id="suggestion-list" class="suggestion-list">
+                <!-- Hasil akan muncul di sini -->
+                <div class="empty-state">Waiting for input...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden data for JS -->
+<script>
+    const WORD_LENGTH = {{ length }};
+</script>
+{% endblock %}

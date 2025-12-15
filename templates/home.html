@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card home-card">
+    <h2>Selamat Datang</h2>
+    <p>Pilih mode permainanmu:</p>
+    <div class="action-buttons">
+        <a href="/play?len=5" class="btn btn-primary">🎮 Latihan (Play)</a>
+        <a href="/solve?len=5" class="btn btn-secondary">🧩 Solver AI</a>
+    </div>
+</div>
+{% endblock %}
