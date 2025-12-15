@@ -2,18 +2,34 @@
 
 {% block content %}
 <div class="game-container">
-    <div class="card game-card">
+    
+    <!-- Dropdown Pilihan Huruf -->
+    <div class="controls" style="margin-bottom: 20px;">
+        <label for="len-select">Word Length: </label>
+        <select id="len-select" onchange="changeMode(this.value)" style="padding: 5px; font-size: 1rem;">
+            <option value="4" {% if length==4 %}selected{% endif %}>4 Letters</option>
+            <option value="5" {% if length==5 %}selected{% endif %}>5 Letters</option>
+            <option value="6" {% if length==6 %}selected{% endif %}>6 Letters</option>
+        </select>
+    </div>
+
+    <div class="card game-card" style="max-width: 500px; margin: 0 auto;">
         <h3>Guess the Word</h3>
-        <div id="game-board"></div>
         
-        <div class="input-area">
-            <input type="text" id="guess-input" maxlength="{{ length }}" placeholder="Type here...">
-            <button onclick="submitGuess()" class="btn btn-primary">Enter</button>
-        </div>
-        <div id="message" class="message"></div>
+        <!-- Game Board: Nanti diisi kotak-kotak oleh JS -->
+        <div id="game-board" class="game-board-grid"></div>
+        
+        <!-- Pesan Status -->
+        <div id="message" class="message" style="margin-top: 20px; min-height: 30px;"></div>
+        
+        <p class="instruction">Ketik menggunakan keyboard fisik Anda.</p>
     </div>
 </div>
+
 <script>
-    const WORD_LENGTH = {{ length }};
+    window.WORD_LENGTH = {{ length }};
+    function changeMode(val) {
+        window.location.href = '/play?len=' + val;
+    }
 </script>
 {% endblock %}

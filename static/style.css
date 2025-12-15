@@ -83,9 +83,23 @@ nav a {
 }
 
 /* COLORS */
-.tile[data-state='grey'] { background-color: var(--grey); border-color: var(--grey); color: white; }
-.tile[data-state='yellow'] { background-color: var(--yellow); border-color: var(--yellow); color: white; }
-.tile[data-state='green'] { background-color: var(--green); border-color: var(--green); color: white; }
+.tile[data-state='grey'], .game-tile[data-state='grey'] { 
+    background-color: var(--grey); 
+    border-color: var(--grey); 
+    color: white !important; 
+}
+
+.tile[data-state='yellow'], .game-tile[data-state='yellow'] { 
+    background-color: var(--yellow); 
+    border-color: var(--yellow); 
+    color: white !important; 
+}
+
+.tile[data-state='green'], .game-tile[data-state='green'] { 
+    background-color: var(--green); 
+    border-color: var(--green); 
+    color: white !important; 
+}
 
 /* INPUTS */
 .tile-input {
@@ -134,4 +148,53 @@ nav a {
 .score-badge {
     color: #666;
     font-size: 0.9rem;
+}
+
+/* Container Grid */
+.game-board-grid {
+    display: grid;
+    grid-template-rows: repeat(6, 1fr);
+    gap: 5px;
+    margin: 20px auto;
+    width: fit-content;
+}
+
+/* Kotak-kotak Game */
+.game-row {
+    display: grid;
+    grid-template-columns: repeat(var(--letters, 5), 1fr); /* Dinamis */
+    gap: 5px;
+}
+
+.game-tile {
+    width: 50px;
+    height: 50px;
+    border: 2px solid #d3d6da; /* Border abu-abu saat kosong */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    background-color: white;
+    user-select: none;
+}
+
+/* Saat kotak terisi huruf tapi belum disubmit */
+.game-tile[data-status='active'] {
+    border-color: #878a8c;
+    animation: pop 0.1s;
+}
+
+/* Animasi kecil saat ngetik */
+@keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.instruction {
+    color: #888;
+    font-size: 0.9rem;
+    margin-top: 10px;
 }

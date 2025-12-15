@@ -1,6 +1,6 @@
 import os
 import random
-from typing import List, Dict, Optional
+from typing import List, Dict
 from enum import Enum
 
 # config
@@ -8,13 +8,9 @@ WORD_LENGTH = 5
 MAX_ATTEMPTS = 6
 
 class Status(Enum):
-    GREEN = "green"    # pos true
-    YELLOW = "yellow"  # pos false
-    GREY = "grey"      # exist false
-
-class OutputMode(Enum):
-    TERMINAL = "terminal"
-    WEB = "web"
+    GREEN = "green"
+    YELLOW = "yellow"
+    GREY = "grey"
 
 class WordleGame:
     def __init__(self, word_length: int = WORD_LENGTH, max_attempts: int = MAX_ATTEMPTS):
@@ -28,53 +24,50 @@ class WordleGame:
         self.new_game()
     
     def _load_words(self) -> List[str]:
-        """Load words from the appropriate dataset based on word length."""
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        word_file = os.path.join(script_dir, f"../../library/english/{self.word_length}.txt")
+        # Menggunakan path absolute agar tidak error path
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        word_file = os.path.join(base_dir, "library", "english", f"{self.word_length}.txt")
         
         try:
             with open(word_file, 'r', encoding='utf-8') as f:
                 words = [line.strip().lower() for line in f if line.strip()]
             return [w for w in words if len(w) == self.word_length]
         except FileNotFoundError:
-            raise FileNotFoundError(f"Word list not found: {word_file}")
-    
+            print(f"[ERROR] File tidak ditemukan di: {word_file}")
+            return [] # Return list kosong biar gak crash
+
     def new_game(self) -> str:
-        """Start a new game with a random word."""
-        self.answer = random.choice(self.word_list)
+        if not self.word_list:
+            self.answer = "error" # Fallback jika file gagal load
+        else:
+            self.answer = random.choice(self.word_list)
+        
         self.attempts = []
         self.game_over = False
         self.won = False
         return self.answer
     
     def make_guess(self, guess: str) -> List[Dict]:
+        # Ini logika untuk terminal, tapi kita bisa pakai logic hitung warnanya saja
         guess = guess.lower().strip()
+        feedback = self.calculate_feedback(guess, self.answer)
         
-        # validation
-        if len(guess) != self.word_length:
-            raise ValueError(f"Guess must be {self.word_length} letters")
-        if not guess.isalpha():
-            raise ValueError("Guess must contain only letters")
-        if self.game_over:
-            raise ValueError("Game is already over")
-        # if guess not in self.word_list:
-        #     raise ValueError("Word not in dictionary")
-        
-        # feedback ans
-        feedback = self._calculate_feedback(guess)
         self.attempts.append(feedback)
         if all(f["status"] == Status.GREEN.value for f in feedback):
             self.won = True
             self.game_over = True
         elif len(self.attempts) >= self.max_attempts:
             self.game_over = True
-        
         return feedback
     
-    def _calculate_feedback(self, guess: str) -> List[Dict]:
+    # KITA JADIKAN STATIC METHOD AGAR BISA DIPAKAI APP.PY TANPA BIKIN OBJECT
+    @staticmethod
+    def calculate_feedback(guess: str, answer: str) -> List[Dict]:
         feedback = []
-        answer_chars = list(self.answer)
+        # Gunakan list karakter agar bisa dimodifikasi
+        answer_chars = list(answer)
         
+        # 1. Inisialisasi (Semua Grey)
         for i, letter in enumerate(guess):
             feedback.append({
                 "letter": letter.upper(),
@@ -82,17 +75,23 @@ class WordleGame:
                 "position": i
             })
         
+        # 2. Cek GREEN (Posisi Benar)
         for i, letter in enumerate(guess):
-            if letter == self.answer[i]:
+            if letter == answer[i]:
                 feedback[i]["status"] = Status.GREEN.value
-                answer_chars[i] = None
+                answer_chars[i] = "*" # Ganti None jadi String "*"
         
+        # 3. Cek YELLOW (Ada tapi salah posisi)
         for i, letter in enumerate(guess):
             if feedback[i]["status"] == Status.GREY.value:
                 if letter in answer_chars:
                     feedback[i]["status"] = Status.YELLOW.value
-                    answer_chars[answer_chars.index(letter)] = None
+                    # Tandai huruf ini sudah terpakai
+                    answer_chars[answer_chars.index(letter)] = "*" 
+                    
         return feedback
+
+# ... (Bagian output_terminal dan main biarkan saja untuk test terminal)
     
     def get_state(self) -> Dict:
         return {

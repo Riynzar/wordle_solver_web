@@ -1,7 +1,5 @@
 // --- SOLVER LOGIC ---
 
-// --- SOLVER LOGIC ---
-
 if (window.location.pathname.includes('/solve')) {
     let rowCount = 0;
 
@@ -127,51 +125,153 @@ if (window.location.pathname.includes('/solve')) {
     window.analyzeSolver = analyzeSolver;
 }
 
-// --- PLAY LOGIC (GENERATOR) ---
-
+// === MODE PLAY (GENERATOR) ===
+// === MODE PLAY (GAME) ===
 if (window.location.pathname.includes('/play')) {
     const gameBoard = document.getElementById('game-board');
+    const msgDiv = document.getElementById('message');
+    
+    let currentAttempt = 0; // Baris ke berapa (0-5)
+    let currentGuess = "";  // Huruf yang sedang diketik
+    let isGameOver = false;
+    const MAX_ATTEMPTS = 6;
 
-    async function submitGuess() {
-        const input = document.getElementById('guess-input');
-        const guess = input.value;
-        
-        if (guess.length !== WORD_LENGTH) return alert(`Must be ${WORD_LENGTH} letters`);
+    // 1. Inisialisasi Grid Kosong
+    function initGrid() {
+        gameBoard.innerHTML = '';
+        for (let i = 0; i < MAX_ATTEMPTS; i++) {
+            const row = document.createElement('div');
+            row.className = 'game-row';
+            row.style.setProperty('--letters', WORD_LENGTH); // Set CSS Variable
+            row.id = `row-${i}`;
 
-        const res = await fetch('/api/play/guess', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ guess: guess })
-        });
-        
-        const data = await res.json();
-        
-        if(data.error) return alert(data.error);
-
-        renderRow(guess, data.feedback);
-        input.value = '';
-        input.focus();
-
-        if (data.won) {
-            document.getElementById('message').innerHTML = "<h2>🎉 YOU WON!</h2>";
-            input.disabled = true;
-        } else if (data.game_over) {
-            document.getElementById('message').innerHTML = `<h2>Game Over! Answer: ${data.answer.toUpperCase()}</h2>`;
+            for (let j = 0; j < WORD_LENGTH; j++) {
+                const tile = document.createElement('div');
+                tile.className = 'game-tile';
+                tile.id = `row-${i}-tile-${j}`;
+                row.appendChild(tile);
+            }
+            gameBoard.appendChild(row);
         }
     }
 
-    function renderRow(word, feedback) {
-        const row = document.createElement('div');
-        row.className = 'row';
-        
-        feedback.forEach(item => {
-            const tile = document.createElement('div');
-            tile.className = 'tile';
-            tile.setAttribute('data-state', item.status);
-            tile.textContent = item.letter;
-            row.appendChild(tile);
-        });
-        
-        gameBoard.appendChild(row);
+    // 2. Update Tampilan Kotak saat Ngetik
+    function updateGrid() {
+        const row = document.getElementById(`row-${currentAttempt}`);
+        if (!row) return;
+
+        // Loop setiap kotak di baris aktif
+        for (let i = 0; i < WORD_LENGTH; i++) {
+            const tile = document.getElementById(`row-${currentAttempt}-tile-${i}`);
+            const letter = currentGuess[i] || ""; // Ambil huruf atau kosong
+
+            tile.textContent = letter;
+            
+            // Ubah border jika ada isi (Efek visual)
+            if (letter) {
+                tile.setAttribute('data-status', 'active');
+                tile.style.borderColor = "#878a8c"; 
+            } else {
+                tile.removeAttribute('data-status');
+                tile.style.borderColor = "#d3d6da";
+            }
+        }
     }
+
+    // 3. Kirim Tebakan ke Server (Enter)
+    async function submitGuess() {
+        if (currentGuess.length !== WORD_LENGTH) {
+            showMessage("Huruf kurang!", "red");
+            shakeRow();
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/play/guess', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ guess: currentGuess })
+            });
+            const data = await res.json();
+
+            if (data.error) {
+                showMessage(data.error, "red");
+                return;
+            }
+
+            // Warnai Kotak berdasarkan respon Server
+            colorRow(currentAttempt, data.feedback);
+
+            if (data.won) {
+                showMessage("🎉 SELAMAT! KAMU MENANG!", "green");
+                isGameOver = true;
+                createConfetti(); // Opsional kalau mau tambah efek
+            } else if (data.game_over) {
+                showMessage(`Game Over! Jawabannya: ${data.answer.toUpperCase()}`, "red");
+                isGameOver = true;
+            } else {
+                // Lanjut ke baris berikutnya
+                currentAttempt++;
+                currentGuess = "";
+            }
+
+        } catch (e) {
+            console.error(e);
+            showMessage("Error koneksi", "red");
+        }
+    }
+
+    // Fungsi Mewarnai Kotak (Permanen setelah Enter)
+   function colorRow(rowIndex, feedback) {
+        for (let i = 0; i < WORD_LENGTH; i++) {
+            const tile = document.getElementById(`row-${rowIndex}-tile-${i}`);
+            const status = feedback[i].status; // green, yellow, grey
+            
+            setTimeout(() => {
+                tile.setAttribute('data-state', status); 
+                // tile.style.color = "white";  <-- HAPUS INI (Sudah diurus CSS)
+                tile.style.border = "none";
+                
+                // Tambahkan animasi flip css class (opsional biar keren)
+                tile.style.transition = "transform 0.5s, background-color 0.5s";
+                tile.style.transform = "rotateX(360deg)";
+            }, i * 200);
+        }
+    }
+
+    function showMessage(text, color) {
+        msgDiv.textContent = text;
+        msgDiv.style.color = color || "black";
+        setTimeout(() => { msgDiv.textContent = ""; }, 3000);
+    }
+
+    function shakeRow() {
+        const row = document.getElementById(`row-${currentAttempt}`);
+        row.style.transform = "translateX(5px)";
+        setTimeout(() => row.style.transform = "translateX(-5px)", 50);
+        setTimeout(() => row.style.transform = "translateX(5px)", 100);
+        setTimeout(() => row.style.transform = "translateX(0)", 150);
+    }
+
+    // 4. Global Keyboard Listener
+    document.addEventListener('keydown', (e) => {
+        if (isGameOver) return;
+
+        const key = e.key.toUpperCase();
+
+        if (key === 'ENTER') {
+            submitGuess();
+        } else if (key === 'BACKSPACE') {
+            currentGuess = currentGuess.slice(0, -1);
+            updateGrid();
+        } else if (/^[A-Z]$/.test(key)) { // Hanya huruf A-Z
+            if (currentGuess.length < WORD_LENGTH) {
+                currentGuess += key;
+                updateGrid();
+            }
+        }
+    });
+
+    // Jalankan inisialisasi awal
+    initGrid();
 }
