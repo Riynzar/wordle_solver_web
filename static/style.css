@@ -1,7 +1,7 @@
 :root {
-    --bg-color: #FFF0F0; /* Pink background */
+    --bg-color: #FFF0F0; 
     --card-bg: #FFFFFF;
-    --primary: #4A90E2; /* Blue button */
+    --primary: #4A90E2; 
     --text-main: #333;
     
     --green: #6aaa64;
@@ -36,7 +36,6 @@ nav a {
     font-weight: 600;
 }
 
-/* CARDS */
 .card {
     background: var(--card-bg);
     border-radius: 15px;
@@ -46,7 +45,6 @@ nav a {
     text-align: left;
 }
 
-/* SOLVER LAYOUT */
 .two-col-layout {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -59,7 +57,6 @@ nav a {
     }
 }
 
-/* INPUT TILES */
 .row {
     display: flex;
     gap: 5px;
@@ -82,7 +79,6 @@ nav a {
     background: white;
 }
 
-/* COLORS */
 .tile[data-state='grey'], .game-tile[data-state='grey'] { 
     background-color: var(--grey); 
     border-color: var(--grey); 
@@ -101,7 +97,6 @@ nav a {
     color: white !important; 
 }
 
-/* INPUTS */
 .tile-input {
     width: 46px;
     height: 46px;
@@ -114,7 +109,6 @@ nav a {
     text-transform: uppercase;
 }
 
-/* BUTTONS */
 .btn {
     padding: 12px 24px;
     border: none;
@@ -129,7 +123,6 @@ nav a {
 .btn-primary:hover { opacity: 0.9; }
 .btn-full { width: 100%; margin-top: 10px; }
 
-/* SUGGESTION LIST */
 .suggestion-item {
     display: flex;
     justify-content: space-between;
@@ -150,7 +143,6 @@ nav a {
     font-size: 0.9rem;
 }
 
-/* Container Grid */
 .game-board-grid {
     display: grid;
     grid-template-rows: repeat(6, 1fr);
@@ -159,17 +151,16 @@ nav a {
     width: fit-content;
 }
 
-/* Kotak-kotak Game */
 .game-row {
     display: grid;
-    grid-template-columns: repeat(var(--letters, 5), 1fr); /* Dinamis */
+    grid-template-columns: repeat(var(--letters, 5), 1fr); 
     gap: 5px;
 }
 
 .game-tile {
     width: 50px;
     height: 50px;
-    border: 2px solid #d3d6da; /* Border abu-abu saat kosong */
+    border: 2px solid #d3d6da; 
     display: flex;
     align-items: center;
     justify-content: center;
@@ -180,13 +171,11 @@ nav a {
     user-select: none;
 }
 
-/* Saat kotak terisi huruf tapi belum disubmit */
 .game-tile[data-status='active'] {
     border-color: #878a8c;
     animation: pop 0.1s;
 }
 
-/* Animasi kecil saat ngetik */
 @keyframes pop {
     0% { transform: scale(1); }
     50% { transform: scale(1.1); }
@@ -197,4 +186,211 @@ nav a {
     color: #888;
     font-size: 0.9rem;
     margin-top: 10px;
+}
+
+.home-form { margin-top: 14px; display: grid; gap: 12px; }
+.form-row { display: grid; gap: 8px; text-align: left; }
+.form-row label { font-weight: 700; color: #444; }
+select { padding: 10px 12px; border-radius: 10px; border: 1px solid #e6e6e6; font-size: 1rem; background: white; }
+
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.2fr;
+  gap: 10px;
+}
+.seg-btn {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #e6e6e6;
+  background: #fff;
+  cursor: pointer;
+  font-weight: 800;
+}
+.seg-btn.active {
+  border-color: #cfe1ff;
+  box-shadow: 0 8px 18px rgba(74,144,226,0.15);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.topbar-center { display: flex; align-items: center; gap: 10px; }
+.btn-ghost {
+  background: transparent;
+  border: 1px solid #e6e6e6;
+  color: #333;
+}
+.btn-secondary {
+  background: #222;
+  color: white;
+}
+
+.play-layout { display: grid; gap: 16px; }
+.play-layout.has-solver { grid-template-columns: 1fr 1fr; }
+@media (max-width: 900px) {
+  .play-layout.has-solver { grid-template-columns: 1fr; }
+}
+
+.solver-embed-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.solver-iframe {
+  width: 100%;
+  height: 560px;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  background: white;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  z-index: 50;
+}
+.modal-overlay.show { display: flex; }
+.modal { max-width: 520px; width: 100%; text-align: left; }
+.modal-actions { display: flex; gap: 10px; margin-top: 12px; }
+
+.confetti-canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  display: none;
+  z-index: 60;
+}
+.confetti-canvas.show { display: block; }
+
+.game-row.shake { animation: shake 0.3s; }
+@keyframes shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  50% { transform: translateX(6px); }
+  75% { transform: translateX(-4px); }
+  100% { transform: translateX(0); }
+}
+.game-tile.flip { animation: flip 0.35s; }
+@keyframes flip {
+  0% { transform: rotateX(0deg); }
+  50% { transform: rotateX(90deg); }
+  100% { transform: rotateX(0deg); }
+}
+
+nav { 
+  display: none !important;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 22px;
+}
+
+.controls label {
+  margin: 0;
+}
+
+#len-select {
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid #e6e6e6;
+  font-size: 1rem;
+}
+
+.topbar-simple{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin: 18px 0 22px;
+}
+
+.board{
+  display:flex;
+  flex-direction:column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.game-row{
+  display:grid;
+  grid-template-columns: repeat(var(--letters), 52px);
+  gap: 8px;
+  justify-content: start;
+}
+
+.game-tile{
+  width: 52px;
+  height: 52px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size: 24px;
+  font-weight: 800;
+  text-transform: uppercase;
+
+  box-sizing: border-box;
+  border: 2px solid #d3d6da;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.game-tile[data-status="active"]{
+  border-color:#878a8c;
+}
+
+.game-tile[data-state="green"],
+.game-tile[data-state="yellow"],
+.game-tile[data-state="grey"]{
+  border: 2px solid transparent;  
+  color: #fff;
+}
+
+.game-tile[data-state="green"]{ background:#6aaa64; }
+.game-tile[data-state="yellow"]{ background:#c9b458; }
+.game-tile[data-state="grey"]{ background:#787c7e; }
+
+@media (max-width: 520px){
+  .game-row{ grid-template-columns: repeat(var(--letters), 44px); }
+  .game-tile{ width:44px; height:44px; font-size:20px; }
+}
+.board{
+  align-items: center;     
+}
+.game-row{
+  justify-content: center;  
+}
+.card.game-card{
+  display: inline-block;   
+  width: auto;
+  max-width: none;
+  margin-left: auto;
+  margin-right: auto;
+}
+.play-layout{
+  justify-items: center;
+}
+.card.game-card h2,
+.card.game-card .play-title{
+  text-align: center;
+}
+.topbar{
+  width: fit-content;
+  margin: 0 auto 18px;     
+  display: flex;
+  align-items: center;
+  justify-content: center;  
+  gap: 180px;                
 }

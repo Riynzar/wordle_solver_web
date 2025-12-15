@@ -20,14 +20,10 @@ if (window.location.pathname.includes('/solve')) {
             input.className = 'tile-input';
             
             // --- PERBAIKAN DI SINI ---
-            // Event: Klik tile (atau input di dalamnya) untuk ganti warna
-            // Syarat: Harus ada hurufnya dulu baru bisa ganti warna
             tile.addEventListener('click', (e) => {
                 if (input.value) {
                     toggleColor(tile);
                     
-                    // Opsional: Supaya kursor tidak 'nyangkut' saat cuma mau ganti warna
-                    // input.blur(); 
                 }
             });
 
@@ -127,151 +123,245 @@ if (window.location.pathname.includes('/solve')) {
 
 // === MODE PLAY (GENERATOR) ===
 // === MODE PLAY (GAME) ===
+// === MODE PLAY (GAME) ===
 if (window.location.pathname.includes('/play')) {
-    const gameBoard = document.getElementById('game-board');
-    const msgDiv = document.getElementById('message');
-    
-    let currentAttempt = 0; // Baris ke berapa (0-5)
-    let currentGuess = "";  // Huruf yang sedang diketik
-    let isGameOver = false;
-    const MAX_ATTEMPTS = 6;
+  const gameBoard = document.getElementById('game-board');
+  const msgDiv = document.getElementById('message');
 
-    // 1. Inisialisasi Grid Kosong
-    function initGrid() {
-        gameBoard.innerHTML = '';
-        for (let i = 0; i < MAX_ATTEMPTS; i++) {
-            const row = document.createElement('div');
-            row.className = 'game-row';
-            row.style.setProperty('--letters', WORD_LENGTH); // Set CSS Variable
-            row.id = `row-${i}`;
+  const resetBtn = document.getElementById('resetBtn');
+  const modal = document.getElementById('endModal');
+  const endTitle = document.getElementById('endTitle');
+  const endDesc = document.getElementById('endDesc');
+  const playAgainBtn = document.getElementById('playAgainBtn');
 
-            for (let j = 0; j < WORD_LENGTH; j++) {
-                const tile = document.createElement('div');
-                tile.className = 'game-tile';
-                tile.id = `row-${i}-tile-${j}`;
-                row.appendChild(tile);
-            }
-            gameBoard.appendChild(row);
-        }
+  let currentAttempt = 0;
+  let currentGuess = "";
+  let isGameOver = false;
+  const MAX_ATTEMPTS = 6;
+
+  // --- Reset game (refresh /play?len=...) ---
+  function resetGame() {
+    const params = new URLSearchParams(window.location.search);
+    const len = params.get('len') || window.WORD_LENGTH || 5;
+    // pertahankan bundle
+    const bundle = params.get('bundle');
+    let url = `/play?len=${len}`;
+    if (bundle) url += `&bundle=${bundle}`;
+    window.location.href = url;
+  }
+  if (resetBtn) resetBtn.addEventListener('click', resetGame);
+
+  // --- Modal helpers ---
+  function openModal(title, desc, primaryText) {
+    endTitle.textContent = title;
+    endDesc.textContent = desc;
+    playAgainBtn.textContent = primaryText;
+
+    modal.classList.add('show');
+    modal.setAttribute('aria-hidden', 'false');
+  }
+  function closeModal() {
+    modal.classList.remove('show');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+  playAgainBtn.addEventListener('click', () => {
+    closeModal();
+    resetGame();
+  });
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  // 1) Init empty grid
+  function initGrid() {
+    gameBoard.innerHTML = '';
+    for (let i = 0; i < MAX_ATTEMPTS; i++) {
+      const row = document.createElement('div');
+      row.className = 'game-row';
+      row.style.setProperty('--letters', WORD_LENGTH);
+      row.id = `row-${i}`;
+
+      for (let j = 0; j < WORD_LENGTH; j++) {
+        const tile = document.createElement('div');
+        tile.className = 'game-tile';
+        tile.id = `row-${i}-tile-${j}`;
+        row.appendChild(tile);
+      }
+      gameBoard.appendChild(row);
+    }
+  }
+
+  // 2) Update tiles while typing
+  function updateGrid() {
+    for (let i = 0; i < WORD_LENGTH; i++) {
+      const tile = document.getElementById(`row-${currentAttempt}-tile-${i}`);
+      const letter = currentGuess[i] || "";
+      tile.textContent = letter;
+
+      if (letter) {
+        tile.setAttribute('data-status', 'active');
+        tile.style.borderColor = "#878a8c";
+      } else {
+        tile.removeAttribute('data-status');
+        tile.style.borderColor = "#d3d6da";
+      }
+    }
+  }
+
+  function showMessage(text, color) {
+    msgDiv.textContent = text;
+    msgDiv.style.color = color || "black";
+    // kalau game over, jangan auto-clear
+    if (!isGameOver) {
+      setTimeout(() => { msgDiv.textContent = ""; }, 2500);
+    }
+  }
+
+  function shakeRow() {
+    const row = document.getElementById(`row-${currentAttempt}`);
+    row.classList.add("shake");
+    setTimeout(() => row.classList.remove("shake"), 300);
+  }
+
+  // 3) Color row based on feedback (flip animation)
+  function colorRow(rowIndex, feedback) {
+    for (let i = 0; i < WORD_LENGTH; i++) {
+      const tile = document.getElementById(`row-${rowIndex}-tile-${i}`);
+      const status = feedback[i].status; // green/yellow/grey
+
+      setTimeout(() => {
+        tile.classList.add('flip');
+        tile.setAttribute('data-state', status);
+        tile.style.border = "none";
+      }, i * 120);
+    }
+  }
+
+  // --- Confetti (canvas overlay) ---
+  function createConfetti() {
+    const canvas = document.getElementById("confettiCanvas");
+    const ctx = canvas.getContext("2d");
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener("resize", resize);
+
+    canvas.classList.add("show");
+
+    const pieces = [];
+    const N = 160;
+    for (let i = 0; i < N; i++) {
+      pieces.push({
+        x: Math.random() * canvas.width,
+        y: -20 - Math.random() * canvas.height * 0.2,
+        w: 6 + Math.random() * 6,
+        h: 8 + Math.random() * 10,
+        vx: -2 + Math.random() * 4,
+        vy: 2 + Math.random() * 5,
+        rot: Math.random() * Math.PI,
+        vr: -0.15 + Math.random() * 0.3,
+        a: 1
+      });
     }
 
-    // 2. Update Tampilan Kotak saat Ngetik
-    function updateGrid() {
-        const row = document.getElementById(`row-${currentAttempt}`);
-        if (!row) return;
+    let t = 0;
+    function tick() {
+      t++;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Loop setiap kotak di baris aktif
-        for (let i = 0; i < WORD_LENGTH; i++) {
-            const tile = document.getElementById(`row-${currentAttempt}-tile-${i}`);
-            const letter = currentGuess[i] || ""; // Ambil huruf atau kosong
+      pieces.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rot += p.vr;
+        p.vy += 0.02; // gravity
+        if (t > 200) p.a -= 0.01;
 
-            tile.textContent = letter;
-            
-            // Ubah border jika ada isi (Efek visual)
-            if (letter) {
-                tile.setAttribute('data-status', 'active');
-                tile.style.borderColor = "#878a8c"; 
-            } else {
-                tile.removeAttribute('data-status');
-                tile.style.borderColor = "#d3d6da";
-            }
-        }
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.a);
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+      });
+
+      if (t < 320) requestAnimationFrame(tick);
+      else {
+        canvas.classList.remove("show");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+    tick();
+  }
+
+  // 4) Submit guess
+  async function submitGuess() {
+    if (currentGuess.length !== WORD_LENGTH) {
+      showMessage("Huruf kurang!", "red");
+      shakeRow();
+      return;
     }
 
-    // 3. Kirim Tebakan ke Server (Enter)
-    async function submitGuess() {
-        if (currentGuess.length !== WORD_LENGTH) {
-            showMessage("Huruf kurang!", "red");
-            shakeRow();
-            return;
-        }
+    try {
+      const res = await fetch('/api/play/guess', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ guess: currentGuess })
+      });
+      const data = await res.json();
 
-        try {
-            const res = await fetch('/api/play/guess', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ guess: currentGuess })
-            });
-            const data = await res.json();
+      if (data.error) {
+        showMessage(data.error, "red");
+        return;
+      }
 
-            if (data.error) {
-                showMessage(data.error, "red");
-                return;
-            }
+      colorRow(currentAttempt, data.feedback);
 
-            // Warnai Kotak berdasarkan respon Server
-            colorRow(currentAttempt, data.feedback);
+      if (data.won) {
+        isGameOver = true;
+        showMessage("🎉 SELAMAT! KAMU MENANG!", "green");
+        createConfetti();
+        openModal("Kamu Menang! 🎉", "Mau main lagi atau balik ke beranda?", "Main lagi");
+        return;
+      }
 
-            if (data.won) {
-                showMessage("🎉 SELAMAT! KAMU MENANG!", "green");
-                isGameOver = true;
-                createConfetti(); // Opsional kalau mau tambah efek
-            } else if (data.game_over) {
-                showMessage(`Game Over! Jawabannya: ${data.answer.toUpperCase()}`, "red");
-                isGameOver = true;
-            } else {
-                // Lanjut ke baris berikutnya
-                currentAttempt++;
-                currentGuess = "";
-            }
+      if (data.game_over) {
+        isGameOver = true;
+        showMessage(`Game Over! Jawabannya: ${data.answer.toUpperCase()}`, "red");
+        openModal("Kamu Kalah 😭", `Jawabannya: ${data.answer.toUpperCase()}`, "Coba lagi");
+        return;
+      }
 
-        } catch (e) {
-            console.error(e);
-            showMessage("Error koneksi", "red");
-        }
+      currentAttempt++;
+      currentGuess = "";
+      updateGrid();
+
+    } catch (e) {
+      console.error(e);
+      showMessage("Error koneksi", "red");
     }
+  }
 
-    // Fungsi Mewarnai Kotak (Permanen setelah Enter)
-   function colorRow(rowIndex, feedback) {
-        for (let i = 0; i < WORD_LENGTH; i++) {
-            const tile = document.getElementById(`row-${rowIndex}-tile-${i}`);
-            const status = feedback[i].status; // green, yellow, grey
-            
-            setTimeout(() => {
-                tile.setAttribute('data-state', status); 
-                // tile.style.color = "white";  <-- HAPUS INI (Sudah diurus CSS)
-                tile.style.border = "none";
-                
-                // Tambahkan animasi flip css class (opsional biar keren)
-                tile.style.transition = "transform 0.5s, background-color 0.5s";
-                tile.style.transform = "rotateX(360deg)";
-            }, i * 200);
-        }
+  // Keyboard listener
+  document.addEventListener('keydown', (e) => {
+    if (isGameOver) return;
+
+    const key = e.key.toUpperCase();
+
+    if (key === 'ENTER') {
+      submitGuess();
+    } else if (key === 'BACKSPACE') {
+      currentGuess = currentGuess.slice(0, -1);
+      updateGrid();
+    } else if (/^[A-Z]$/.test(key)) {
+      if (currentGuess.length < WORD_LENGTH) {
+        currentGuess += key;
+        updateGrid();
+      }
     }
+  });
 
-    function showMessage(text, color) {
-        msgDiv.textContent = text;
-        msgDiv.style.color = color || "black";
-        setTimeout(() => { msgDiv.textContent = ""; }, 3000);
-    }
-
-    function shakeRow() {
-        const row = document.getElementById(`row-${currentAttempt}`);
-        row.style.transform = "translateX(5px)";
-        setTimeout(() => row.style.transform = "translateX(-5px)", 50);
-        setTimeout(() => row.style.transform = "translateX(5px)", 100);
-        setTimeout(() => row.style.transform = "translateX(0)", 150);
-    }
-
-    // 4. Global Keyboard Listener
-    document.addEventListener('keydown', (e) => {
-        if (isGameOver) return;
-
-        const key = e.key.toUpperCase();
-
-        if (key === 'ENTER') {
-            submitGuess();
-        } else if (key === 'BACKSPACE') {
-            currentGuess = currentGuess.slice(0, -1);
-            updateGrid();
-        } else if (/^[A-Z]$/.test(key)) { // Hanya huruf A-Z
-            if (currentGuess.length < WORD_LENGTH) {
-                currentGuess += key;
-                updateGrid();
-            }
-        }
-    });
-
-    // Jalankan inisialisasi awal
-    initGrid();
+  initGrid();
 }

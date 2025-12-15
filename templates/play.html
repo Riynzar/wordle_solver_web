@@ -1,35 +1,78 @@
 {% extends "base.html" %}
-
 {% block content %}
-<div class="game-container">
+
+<div class="container"
+     id="pageState"
+     data-word-length="{{ length }}"
+     data-bundle="{{ '1' if request.args.get('bundle') else '0' }}">
+
+  <div class="topbar">
+    <a href="/" class="btn btn-home">← Beranda</a>
     
-    <!-- Dropdown Pilihan Huruf -->
-    <div class="controls" style="margin-bottom: 20px;">
-        <label for="len-select">Word Length: </label>
-        <select id="len-select" onchange="changeMode(this.value)" style="padding: 5px; font-size: 1rem;">
-            <option value="4" {% if length==4 %}selected{% endif %}>4 Letters</option>
-            <option value="5" {% if length==5 %}selected{% endif %}>5 Letters</option>
-            <option value="6" {% if length==6 %}selected{% endif %}>6 Letters</option>
+    <div class="topbar-center">
+        <select class="minimal-select" id="play-len-select" onchange="updateGameConfig()">
+          <option value="4" {% if length==4 %}selected{% endif %}>4 letters</option>
+          <option value="5" {% if length==5 or not length %}selected{% endif %}>5 letters</option>
+          <option value="6" {% if length==6 %}selected{% endif %}>6 letters</option>
+        </select>
+        
+        <select class="minimal-select">
+            <option>English</option>
         </select>
     </div>
 
-    <div class="card game-card" style="max-width: 500px; margin: 0 auto;">
-        <h3>Guess the Word</h3>
-        
-        <!-- Game Board: Nanti diisi kotak-kotak oleh JS -->
-        <div id="game-board" class="game-board-grid"></div>
-        
-        <!-- Pesan Status -->
-        <div id="message" class="message" style="margin-top: 20px; min-height: 30px;"></div>
-        
-        <p class="instruction">Ketik menggunakan keyboard fisik Anda.</p>
+    <button class="btn btn-reset" id="resetBtn" type="button">↻ Reset</button>
+  </div>
+
+  <div class="play-layout {% if request.args.get('bundle') %}has-solver{% endif %}">
+    <div class="card game-card">
+      <h2 class="play-title">Guess the Word</h2>
+
+      <div id="game-board" class="board"></div>
+
+      <div id="message" class="message"></div>
+      <p class="instruction">Ketik pakai keyboard fisik, tekan Enter untuk submit.</p>
     </div>
+
+    {% if request.args.get('bundle') %}
+    <div class="card solver-embed-card">
+      <div class="solver-embed-head">
+        <h2>Solver</h2>
+        <a class="btn btn-home" href="/solve?len={{ length }}" target="_blank" rel="noopener">Buka tab baru ↗</a>
+      </div>
+      <iframe class="solver-iframe" src="/solve?len={{ length }}"></iframe>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<canvas id="confettiCanvas" class="confetti-canvas"></canvas>
+
+<div id="endModal" class="modal-overlay" aria-hidden="true">
+  <div class="modal card">
+    <h3 id="endTitle">Selesai</h3>
+    <p id="endDesc" class="subtitle"></p>
+
+    <div class="modal-actions">
+      <button class="btn btn-reset" id="playAgainBtn" type="button">Main lagi</button>
+      <a class="btn btn-home" href="/">Kembali beranda</a>
+    </div>
+  </div>
 </div>
 
 <script>
-    window.WORD_LENGTH = {{ length }};
-    function changeMode(val) {
-        window.location.href = '/play?len=' + val;
-    }
+  (function () {
+    const st = document.getElementById("pageState");
+    window.WORD_LENGTH = parseInt(st.dataset.wordLength, 10);
+    window.BUNDLE = (st.dataset.bundle === "1");
+  })();
+
+  function updateGameConfig() {
+    const newLen = document.getElementById('play-len-select').value;
+    const params = new URLSearchParams(window.location.search);
+    params.set('len', newLen);
+    window.location.href = window.location.pathname + '?' + params.toString();
+  }
 </script>
+
 {% endblock %}

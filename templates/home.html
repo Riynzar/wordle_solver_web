@@ -1,12 +1,65 @@
 {% extends "base.html" %}
-
 {% block content %}
+
 <div class="card home-card">
-    <h2>Selamat Datang</h2>
-    <p>Pilih mode permainanmu:</p>
-    <div class="action-buttons">
-        <a href="/play?len=5" class="btn btn-primary">🎮 Latihan (Play)</a>
-        <a href="/solve?len=5" class="btn btn-secondary">🧩 Solver AI</a>
+  <h2>Wordle Lab</h2>
+  <p class="subtitle">Atur dulu sebelum main 👇</p>
+
+  <div class="home-form">
+    <div class="form-row">
+      <label>Language</label>
+      <select id="lang">
+        <option value="en" selected>English</option>
+        <option value="id" disabled>Indonesian (coming soon)</option>
+      </select>
     </div>
+
+    <div class="form-row">
+      <label>Word Length</label>
+      <select id="len">
+        <option value="4">4 Letters</option>
+        <option value="5" selected>5 Letters</option>
+        <option value="6">6 Letters</option>
+      </select>
+    </div>
+
+    <div class="form-row">
+      <label>Mode</label>
+      <div class="segmented" role="tablist" aria-label="Mode">
+        <button class="seg-btn active" data-mode="play" type="button">🎮 Wordle</button>
+        <button class="seg-btn" data-mode="solve" type="button">🧩 Solver</button>
+        <button class="seg-btn" data-mode="both" type="button">🧠 Wordle + Solver</button>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-full" id="startBtn">Mainkan sekarang</button>
+    <p class="mini-note">Tip: mode “Wordle + Solver” akan menampilkan solver di samping game.</p>
+  </div>
 </div>
+
+<script>
+  let selectedMode = "play";
+
+  document.querySelectorAll(".seg-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".seg-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      selectedMode = btn.dataset.mode;
+    });
+  });
+
+  document.getElementById("startBtn").addEventListener("click", () => {
+    const len = document.getElementById("len").value;
+    const lang = document.getElementById("lang").value;
+
+    if (selectedMode === "solve") {
+      window.location.href = `/solve?len=${len}&lang=${lang}`;
+    } else if (selectedMode === "both") {
+      window.location.href = `/play?len=${len}&lang=${lang}&bundle=1`;
+    } else {
+      window.location.href = `/play?len=${len}&lang=${lang}`;
+    }
+  });
+</script>
+
 {% endblock %}
