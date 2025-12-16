@@ -9,8 +9,8 @@
     <div class="form-row">
       <label>Language</label>
       <select id="lang">
-        <option value="en" selected>English</option>
-        <option value="id" disabled>Indonesian (coming soon)</option>
+        <option value="english" selected>English</option>
+        <option value="indonesia">Indonesian</option>
       </select>
     </div>
 
@@ -53,9 +53,9 @@
     const lang = document.getElementById("lang").value;
 
     if (selectedMode === "solve") {
-      window.location.href = `/solve?len=${len}`;
+      window.location.href = `/solve?len=${len}&lang=${lang}`;
     } else {
-      window.location.href = `/play?len=${len}`;
+      window.location.href = `/play?len=${len}&lang=${lang}`;
     }
   });
 </script>
