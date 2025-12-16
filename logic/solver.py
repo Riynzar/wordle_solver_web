@@ -2,10 +2,10 @@ import math
 from collections import Counter
 
 class WordleCSP:
-    def __init__(self, word_list):
+    def __init__(self, word_list, popular_list=None):
         self.domain = [w.lower() for w in word_list]
+        self.popular_set = set([w.lower() for w in popular_list]) if popular_list else set()
         self.guesses_made = []
-
     def add_constraint(self, guess, feedback):
         """
         'G' = Green (Correct pos)
@@ -90,6 +90,15 @@ class WordleCSP:
         
         return entropy
 
+    def calculate_score(self, guess):
+        entropy = self.calc_entropy(guess)
+        
+        # JIKA kata ada di popular set, tambah poin entropy-nya
+        if guess in self.popular_set:
+            entropy += 0.5  # <--- INI PENGATURAN BONUSNYA
+            
+        return entropy
+    
     def get_next_guess(self):
         if not self.domain:
             return None
@@ -97,18 +106,15 @@ class WordleCSP:
         if len(self.domain) <= 2:
             return self.domain[0]
         
-        # Find word with max entropy
         best_word = None
-        best_entropy = -1
+        best_score = -1
         
-        # Limit candidates for performance
         candidates = self.domain[:100] if len(self.domain) > 100 else self.domain
         
         for word in candidates:
-            entropy = self.calc_entropy(word)
-            if entropy > best_entropy:
-                best_entropy = entropy
+            # Gunakan method score baru
+            score = self.calculate_score(word)
+            if score > best_score:
+                best_score = score
                 best_word = word
-        
-        print(f"Best entropy: {best_entropy:.3f} bits")
         return best_word

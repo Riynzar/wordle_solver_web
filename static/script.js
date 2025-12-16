@@ -133,7 +133,7 @@ if (window.location.pathname.includes('/solve')) {
             div.className = 'suggestion-item';
             div.innerHTML = `
                 <span class="word-badge">${item.word}</span>
-                <span class="score-badge">${item.score}% Prob</span>
+                <span class="score-badge">${item.score} Score</span>
             `;
             list.appendChild(div);
         });
