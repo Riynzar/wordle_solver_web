@@ -1,5 +1,12 @@
-// --- SOLVER LOGIC ---
+// ==========================================
+// KONFIGURASI GLOBAL
+// ==========================================
+const WORD_LENGTH = typeof window.WORD_LENGTH !== 'undefined' ? window.WORD_LENGTH : 5;
 
+
+// ==========================================
+// LOGIKA SOLVER (/solve)
+// ==========================================
 if (window.location.pathname.includes('/solve')) {
     let rowCount = 0;
 
@@ -19,28 +26,24 @@ if (window.location.pathname.includes('/solve')) {
             input.maxLength = 1;
             input.className = 'tile-input';
             
-            // --- PERBAIKAN DI SINI ---
+            // Klik kotak untuk ganti warna (hanya jika ada huruf)
             tile.addEventListener('click', (e) => {
                 if (input.value) {
                     toggleColor(tile);
-                    
                 }
             });
 
             // Auto-focus logic
             input.addEventListener('keyup', (e) => {
-                // Pindah ke kotak sebelah kalau sudah ketik 1 huruf
                 if (input.value.length === 1) {
                     const next = tile.nextElementSibling?.querySelector('input');
                     if (next) next.focus();
                 }
-                // Backspace: pindah ke kotak sebelumnya
                 if (e.key === 'Backspace' && input.value.length === 0) {
                      const prev = tile.previousElementSibling?.querySelector('input');
                      if (prev) prev.focus();
                 }
             });
-            // -------------------------
 
             tile.appendChild(input);
             row.appendChild(tile);
@@ -50,11 +53,31 @@ if (window.location.pathname.includes('/solve')) {
     }
 
     function toggleColor(tile) {
+        // Mencegah klik spam saat animasi berjalan
+        if (tile.classList.contains('flip')) return;
+
         const states = ['grey', 'yellow', 'green'];
         const current = tile.getAttribute('data-state');
         const next = states[(states.indexOf(current) + 1) % states.length];
         
-        tile.setAttribute('data-state', next);
+        // 1. Tambahkan class animasi
+        tile.classList.add('flip');
+
+        // 2. Tunggu setengah animasi (saat kartu gepeng/tegak lurus), baru ganti warna
+        setTimeout(() => {
+            tile.setAttribute('data-state', next);
+            
+            // Logika Border:
+            // Kalau berwarna (Green/Yellow/Grey), border biasanya hilang (flat color).
+            // Tapi karena default solver startnya grey, kita biarkan logic CSS yang handle.
+            // CSS kita diatas sudah set border-color sama dengan background.
+            
+        }, 150); // 150ms adalah setengah dari durasi animasi flip umum
+
+        // 3. Hapus class animasi setelah selesai agar bisa di-flip lagi nanti
+        setTimeout(() => {
+            tile.classList.remove('flip');
+        }, 400);
     }
 
     async function analyzeSolver() {
@@ -116,63 +139,51 @@ if (window.location.pathname.includes('/solve')) {
         });
     }
 
+    // Init Solver
     document.addEventListener('DOMContentLoaded', createRow);
     window.addSolverRow = createRow;
     window.analyzeSolver = analyzeSolver;
 }
 
-// === MODE PLAY (GENERATOR) ===
-// === MODE PLAY (GAME) ===
-// === MODE PLAY (GAME) ===
+
+// ==========================================
+// LOGIKA GAME / PLAY (/play)
+// ==========================================
 if (window.location.pathname.includes('/play')) {
   const gameBoard = document.getElementById('game-board');
   const msgDiv = document.getElementById('message');
-
   const resetBtn = document.getElementById('resetBtn');
+  const hintBtn = document.getElementById('hintBtn');
+  const keyboardContainer = document.getElementById('keyboard');
+  
+  // Modals
   const modal = document.getElementById('endModal');
   const endTitle = document.getElementById('endTitle');
   const endDesc = document.getElementById('endDesc');
   const playAgainBtn = document.getElementById('playAgainBtn');
 
+  // Hint Elements
+  const hintModal = document.getElementById('hintModal');
+  const hintContainer = document.getElementById('hintCardsContainer');
+
+  // Game State
   let currentAttempt = 0;
   let currentGuess = "";
   let isGameOver = false;
   const MAX_ATTEMPTS = 6;
 
-  // --- Reset game (refresh /play?len=...) ---
+  // Hint State
+  let hintUsedThisTurn = false;
+  let revealedIndices = [];
+
+  // --- FUNGSI UTAMA ---
+
   function resetGame() {
-    const params = new URLSearchParams(window.location.search);
-    const len = params.get('len') || window.WORD_LENGTH || 5;
-    // pertahankan bundle
-    const bundle = params.get('bundle');
-    let url = `/play?len=${len}`;
-    if (bundle) url += `&bundle=${bundle}`;
-    window.location.href = url;
+    window.location.href = `/play?len=${window.WORD_LENGTH}`;
   }
-  if (resetBtn) resetBtn.addEventListener('click', resetGame);
+  if(resetBtn) resetBtn.addEventListener('click', resetGame);
 
-  // --- Modal helpers ---
-  function openModal(title, desc, primaryText) {
-    endTitle.textContent = title;
-    endDesc.textContent = desc;
-    playAgainBtn.textContent = primaryText;
-
-    modal.classList.add('show');
-    modal.setAttribute('aria-hidden', 'false');
-  }
-  function closeModal() {
-    modal.classList.remove('show');
-    modal.setAttribute('aria-hidden', 'true');
-  }
-  playAgainBtn.addEventListener('click', () => {
-    closeModal();
-    resetGame();
-  });
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) closeModal();
-  });
-
-  // 1) Init empty grid
+  // 1. Inisialisasi Grid Game
   function initGrid() {
     gameBoard.innerHTML = '';
     for (let i = 0; i < MAX_ATTEMPTS; i++) {
@@ -189,9 +200,12 @@ if (window.location.pathname.includes('/play')) {
       }
       gameBoard.appendChild(row);
     }
+    
+    // Matikan tombol hint di awal game
+    if(hintBtn) hintBtn.disabled = true;
   }
 
-  // 2) Update tiles while typing
+  // 2. Update Tampilan Kotak saat Ngetik
   function updateGrid() {
     for (let i = 0; i < WORD_LENGTH; i++) {
       const tile = document.getElementById(`row-${currentAttempt}-tile-${i}`);
@@ -208,95 +222,14 @@ if (window.location.pathname.includes('/play')) {
     }
   }
 
-  function showMessage(text, color) {
-    msgDiv.textContent = text;
-    msgDiv.style.color = color || "black";
-    // kalau game over, jangan auto-clear
-    if (!isGameOver) {
-      setTimeout(() => { msgDiv.textContent = ""; }, 2500);
-    }
-  }
-
+  // 3. Efek Getar jika Salah
   function shakeRow() {
     const row = document.getElementById(`row-${currentAttempt}`);
     row.classList.add("shake");
     setTimeout(() => row.classList.remove("shake"), 300);
   }
 
-  // 3) Color row based on feedback (flip animation)
-  function colorRow(rowIndex, feedback) {
-    for (let i = 0; i < WORD_LENGTH; i++) {
-      const tile = document.getElementById(`row-${rowIndex}-tile-${i}`);
-      const status = feedback[i].status; // green/yellow/grey
-
-      setTimeout(() => {
-        tile.classList.add('flip');
-        tile.setAttribute('data-state', status);
-        tile.style.border = "none";
-      }, i * 120);
-    }
-  }
-
-  // --- Confetti (canvas overlay) ---
-  function createConfetti() {
-    const canvas = document.getElementById("confettiCanvas");
-    const ctx = canvas.getContext("2d");
-
-    function resize() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
-    resize();
-    window.addEventListener("resize", resize);
-
-    canvas.classList.add("show");
-
-    const pieces = [];
-    const N = 160;
-    for (let i = 0; i < N; i++) {
-      pieces.push({
-        x: Math.random() * canvas.width,
-        y: -20 - Math.random() * canvas.height * 0.2,
-        w: 6 + Math.random() * 6,
-        h: 8 + Math.random() * 10,
-        vx: -2 + Math.random() * 4,
-        vy: 2 + Math.random() * 5,
-        rot: Math.random() * Math.PI,
-        vr: -0.15 + Math.random() * 0.3,
-        a: 1
-      });
-    }
-
-    let t = 0;
-    function tick() {
-      t++;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      pieces.forEach(p => {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.rot += p.vr;
-        p.vy += 0.02; // gravity
-        if (t > 200) p.a -= 0.01;
-
-        ctx.save();
-        ctx.globalAlpha = Math.max(0, p.a);
-        ctx.translate(p.x, p.y);
-        ctx.rotate(p.rot);
-        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
-        ctx.restore();
-      });
-
-      if (t < 320) requestAnimationFrame(tick);
-      else {
-        canvas.classList.remove("show");
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }
-    }
-    tick();
-  }
-
-  // 4) Submit guess
+  // 4. Submit Tebakan
   async function submitGuess() {
     if (currentGuess.length !== WORD_LENGTH) {
       showMessage("Huruf kurang!", "red");
@@ -314,29 +247,43 @@ if (window.location.pathname.includes('/play')) {
 
       if (data.error) {
         showMessage(data.error, "red");
+        shakeRow();
         return;
       }
 
+      // A. Warnai Grid (Animasi Flip)
       colorRow(currentAttempt, data.feedback);
 
+      // B. Warnai Keyboard (Delay sedikit biar sinkron sama flip)
+      setTimeout(() => updateKeyboardColors(data.feedback), 1500);
+
+      // C. Cek Menang
       if (data.won) {
         isGameOver = true;
-        showMessage("🎉 SELAMAT! KAMU MENANG!", "green");
         createConfetti();
-        openModal("Kamu Menang! 🎉", "Mau main lagi atau balik ke beranda?", "Main lagi");
+        setTimeout(() => openModal("🎉 Menang!", "Kamu hebat banget!", "Main lagi"), 2000);
         return;
       }
 
+      // D. Cek Kalah
       if (data.game_over) {
         isGameOver = true;
-        showMessage(`Game Over! Jawabannya: ${data.answer.toUpperCase()}`, "red");
-        openModal("Kamu Kalah 😭", `Jawabannya: ${data.answer.toUpperCase()}`, "Coba lagi");
+        setTimeout(() => openModal("Game Over", `Jawabannya: ${data.answer.toUpperCase()}`, "Coba lagi"), 2000);
         return;
       }
 
+      // E. Lanjut Turn Berikutnya
       currentAttempt++;
       currentGuess = "";
       updateGrid();
+
+      // Reset Hint Button Logic
+      // Tombol Hint nyala mulai dari input ke-2 (index 1)
+      if(currentAttempt >= 1 && hintBtn) {
+          hintBtn.disabled = false; 
+          // Text tidak diubah agar layout stabil
+          hintUsedThisTurn = false; 
+      }
 
     } catch (e) {
       console.error(e);
@@ -344,24 +291,195 @@ if (window.location.pathname.includes('/play')) {
     }
   }
 
-  // Keyboard listener
+  // --- VIRTUAL KEYBOARD ---
+  const KEYBOARD_LAYOUT = [
+      "QWERTYUIOP",
+      "ASDFGHJKL",
+      "ZXCVBNM"
+  ];
+
+  function initVirtualKeyboard() {
+      if(!keyboardContainer) return;
+      keyboardContainer.innerHTML = '';
+      
+      KEYBOARD_LAYOUT.forEach((rowStr, index) => {
+          const rowDiv = document.createElement('div');
+          rowDiv.className = 'keyboard-row';
+          
+          let keys = rowStr.split('');
+          if (index === 2) { keys.unshift('ENTER'); keys.push('⌫'); }
+
+          keys.forEach(keyChar => {
+              const btn = document.createElement('button');
+              btn.className = 'key';
+              btn.textContent = keyChar;
+              btn.setAttribute('data-key', keyChar === '⌫' ? 'BACKSPACE' : keyChar);
+              
+              if (keyChar === 'ENTER' || keyChar === '⌫') btn.classList.add('key-wide');
+
+              btn.addEventListener('click', () => handleVirtualKey(keyChar));
+              rowDiv.appendChild(btn);
+          });
+          keyboardContainer.appendChild(rowDiv);
+      });
+  }
+
+  function handleVirtualKey(key) {
+      if (isGameOver) return;
+      if (key === 'ENTER') submitGuess();
+      else if (key === '⌫') { currentGuess = currentGuess.slice(0, -1); updateGrid(); }
+      else { if (currentGuess.length < WORD_LENGTH) { currentGuess += key; updateGrid(); } }
+  }
+
+  function updateKeyboardColors(feedback) {
+      feedback.forEach(item => {
+          const keyBtn = document.querySelector(`.key[data-key="${item.letter}"]`);
+          if (!keyBtn) return;
+          const currentState = keyBtn.getAttribute('data-state');
+          const newState = item.status;
+          
+          // Prioritas warna: Green > Yellow > Grey
+          if (currentState === 'green') return;
+          if (currentState === 'yellow' && newState !== 'green') return;
+          
+          keyBtn.setAttribute('data-state', newState);
+      });
+  }
+
+  // --- HINT SYSTEM ---
+  function initHintCards() {
+    if(!hintContainer) return;
+    hintContainer.innerHTML = '';
+    hintContainer.style.gridTemplateColumns = `repeat(${WORD_LENGTH}, 1fr)`;
+
+    for(let i=0; i<WORD_LENGTH; i++) {
+        const card = document.createElement('div');
+        card.className = 'hint-card';
+        card.dataset.index = i;
+        card.innerHTML = `
+            <div class="hint-inner">
+                <div class="hint-front">?</div>
+                <div class="hint-back"></div>
+            </div>
+        `;
+        card.addEventListener('click', () => onHintCardClick(card, i));
+        hintContainer.appendChild(card);
+    }
+  }
+
+  if(hintBtn) {
+      hintBtn.addEventListener('click', () => {
+          if(currentAttempt < 1) { showMessage("Mainkan minimal 1 kata dulu!", "red"); return; }
+          hintModal.classList.add('show');
+      });
+  }
+
+  window.closeHintModal = function() {
+      hintModal.classList.remove('show');
+  }
+
+  async function onHintCardClick(cardElement, index) {
+      if(revealedIndices.includes(index)) return; 
+      if(hintUsedThisTurn) { alert("Hanya boleh 1 hint per jalan!"); return; }
+
+      try {
+          const res = await fetch('/api/play/hint', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({ index: index })
+          });
+          const data = await res.json();
+
+          if(data.error) { alert(data.error); return; }
+
+          // Buka Kartu
+          cardElement.querySelector('.hint-back').textContent = data.letter;
+          cardElement.classList.add('flipped');
+
+          // Update State
+          revealedIndices.push(index);
+          hintUsedThisTurn = true; 
+
+          // Matikan tombol hint (tanpa ubah teks)
+          hintBtn.disabled = true; 
+          
+      } catch(e) { console.error(e); }
+  }
+
+
+  // --- HELPERS ---
+  function colorRow(rowIndex, feedback) {
+    for (let i = 0; i < WORD_LENGTH; i++) {
+      const tile = document.getElementById(`row-${rowIndex}-tile-${i}`);
+      setTimeout(() => {
+        tile.classList.add('flip');
+        tile.setAttribute('data-state', feedback[i].status);
+        tile.style.border = "none";
+      }, i * 120);
+    }
+  }
+
+  function showMessage(text, color) {
+    msgDiv.textContent = text;
+    msgDiv.style.color = color || "black";
+    if (!isGameOver) setTimeout(() => { msgDiv.textContent = ""; }, 2500);
+  }
+
+  function openModal(title, desc, primaryText) {
+    endTitle.textContent = title;
+    endDesc.textContent = desc;
+    playAgainBtn.textContent = primaryText;
+    modal.classList.add('show');
+  }
+
+  function closeModal() { modal.classList.remove('show'); }
+  playAgainBtn.addEventListener('click', resetGame);
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+  // Event Listener Keyboard Fisik
   document.addEventListener('keydown', (e) => {
     if (isGameOver) return;
-
     const key = e.key.toUpperCase();
-
-    if (key === 'ENTER') {
-      submitGuess();
-    } else if (key === 'BACKSPACE') {
-      currentGuess = currentGuess.slice(0, -1);
-      updateGrid();
-    } else if (/^[A-Z]$/.test(key)) {
-      if (currentGuess.length < WORD_LENGTH) {
-        currentGuess += key;
-        updateGrid();
-      }
-    }
+    if (key === 'ENTER') submitGuess();
+    else if (key === 'BACKSPACE') { currentGuess = currentGuess.slice(0, -1); updateGrid(); }
+    else if (/^[A-Z]$/.test(key)) { if (currentGuess.length < WORD_LENGTH) { currentGuess += key; updateGrid(); } }
   });
 
+  // CONFETTI ANIMATION
+  function createConfetti() {
+    const canvas = document.getElementById("confettiCanvas");
+    if(!canvas) return;
+    const ctx = canvas.getContext("2d");
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    resize(); window.addEventListener("resize", resize);
+    canvas.classList.add("show");
+    
+    const pieces = [];
+    for (let i = 0; i < 150; i++) {
+      pieces.push({
+        x: Math.random() * canvas.width, y: -20 - Math.random() * canvas.height,
+        w: 6 + Math.random()*6, h: 8 + Math.random()*10,
+        vx: -2+Math.random()*4, vy: 2+Math.random()*5,
+        rot: Math.random()*Math.PI, vr: -0.1+Math.random()*0.2, a: 1
+      });
+    }
+    let t = 0;
+    function tick() {
+      t++; ctx.clearRect(0, 0, canvas.width, canvas.height);
+      pieces.forEach(p => {
+        p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr; p.vy+=0.02;
+        if(t>200) p.a-=0.01;
+        ctx.save(); ctx.globalAlpha=Math.max(0,p.a); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+        ctx.fillStyle = `hsl(${Math.random()*360}, 70%, 50%)`;
+        ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h); ctx.restore();
+      });
+      if(t<300) requestAnimationFrame(tick); else { canvas.classList.remove("show"); }
+    }
+    tick();
+  }
+
+  // JALANKAN INIT
   initGrid();
+  initVirtualKeyboard();
+  initHintCards();
 }

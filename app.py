@@ -1,6 +1,6 @@
 import os
 from flask import Flask, render_template, request, jsonify, session
-from logic.game import WordleGame  # Import class yang sudah diperbaiki
+from logic.game import WordleGame 
 from logic.solver import WordleCSP
 import random
 
@@ -9,7 +9,6 @@ app.secret_key = 'kunci_rahasia_bebas_ganti_aja'
 
 # --- HELPER: Load Kata ---
 def get_word_list(length):
-    # Path yang aman
     base_dir = os.path.dirname(os.path.abspath(__file__))
     path = os.path.join(base_dir, 'library', 'english', f'{length}.txt')
     try:
@@ -26,12 +25,8 @@ def home():
 
 @app.route('/play')
 def play_page():
-    # Ambil parameter panjang kata, default 5
     length = int(request.args.get('len', 5))
-    
-    # Validasi input agar user tidak iseng ngetik ?len=100
-    if length not in [4, 5, 6]:
-        length = 5
+    if length not in [4, 5, 6]: length = 5
         
     session['mode'] = 'play'
     session['word_length'] = length
@@ -45,7 +40,9 @@ def play_page():
     session['attempts'] = [] 
     session['game_over'] = False
     
-    # Kirim variabel 'length' ke HTML agar dropdown bisa menyesuaikan diri
+    # Reset tracking hint di server juga agar aman (opsional)
+    session['hints_revealed'] = [] 
+    
     return render_template('play.html', length=length)
 
 @app.route('/solve')
@@ -53,32 +50,25 @@ def solve_page():
     length = int(request.args.get('len', 5))
     return render_template('solve.html', length=length)
 
-# --- API (Backend Logic) ---
+# --- API ---
 
 @app.route('/api/play/guess', methods=['POST'])
 def play_guess():
     data = request.json
     guess = data.get('guess', '').lower()
     
-    # Ambil state dari session
     target = session.get('target_word')
     length = session.get('word_length')
     attempts = session.get('attempts', [])
     
-    if not target:
-        return jsonify({'error': 'Sesi habis. Refresh halaman.'}), 400
-    if len(guess) != length:
-        return jsonify({'error': f'Kata harus {length} huruf!'}), 400
+    if not target: return jsonify({'error': 'Sesi habis.'}), 400
+    if len(guess) != length: return jsonify({'error': 'Panjang kata salah!'}), 400
 
-    # --- PAKAI LOGIKA DARI GAME.PY ---
-    # Kita panggil fungsi static yang sudah kita siapkan
     feedback = WordleGame.calculate_feedback(guess, target)
     
-    # Simpan hasil ke session history
     attempts.append(feedback)
-    session['attempts'] = attempts # Simpan balik ke session
+    session['attempts'] = attempts
     
-    # Cek Menang/Kalah
     won = (guess == target)
     game_over = won or len(attempts) >= 6
     
@@ -89,16 +79,36 @@ def play_guess():
         'answer': target if game_over else None
     })
 
+# === API BARU: HINT ===
+@app.route('/api/play/hint', methods=['POST'])
+def play_hint():
+    data = request.json
+    index = data.get('index') # Index huruf yang mau dibuka (0-5)
+    
+    target = session.get('target_word')
+    if not target: return jsonify({'error': 'Game over'}), 400
+    
+    # Kembalikan huruf yang benar pada index tersebut
+    try:
+        letter = target[int(index)].upper()
+        
+        # Simpan state hint agar user tidak curang (opsional, untuk validasi lanjut)
+        revealed = session.get('hints_revealed', [])
+        if index not in revealed:
+            revealed.append(index)
+            session['hints_revealed'] = revealed
+            
+        return jsonify({'letter': letter})
+    except:
+        return jsonify({'error': 'Index invalid'}), 400
+
 @app.route('/api/solve/analyze', methods=['POST'])
 def solve_analyze():
-    # ... (Bagian solver tetap sama seperti sebelumnya yang sudah working)
     data = request.json
     length = data.get('length', 5)
     history = data.get('history', [])
-    
     word_list = get_word_list(length)
     solver = WordleCSP(word_list)
-    
     try:
         for entry in history:
             solver.add_constraint(entry['word'], entry['feedback'])
@@ -118,11 +128,7 @@ def solve_analyze():
         suggestions.append({'word': word.upper(), 'score': score})
         
     suggestions.sort(key=lambda x: x['score'], reverse=True)
-    
-    return jsonify({
-        'count': count,
-        'suggestions': suggestions[:50] 
-    })
+    return jsonify({'count': count, 'suggestions': suggestions[:50]})
 
 if __name__ == '__main__':
     app.run(debug=True)

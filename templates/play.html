@@ -1,12 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="container"
-     id="pageState"
-     data-word-length="{{ length }}"
-     data-bundle="{{ '1' if request.args.get('bundle') else '0' }}">
-
-  <div class="topbar">
+<div class="container" id="pageState" data-word-length="{{ length }}">
+  
+  <!-- Topbar Navigasi -->
+  <div class="topbar static-width">
     <a href="/" class="btn btn-home">← Beranda</a>
     
     <div class="topbar-center">
@@ -15,44 +13,44 @@
           <option value="5" {% if length==5 or not length %}selected{% endif %}>5 letters</option>
           <option value="6" {% if length==6 %}selected{% endif %}>6 letters</option>
         </select>
-        
-        <select class="minimal-select">
-            <option>English</option>
-        </select>
     </div>
 
     <button class="btn btn-reset" id="resetBtn" type="button">↻ Reset</button>
   </div>
 
-  <div class="play-layout {% if request.args.get('bundle') %}has-solver{% endif %}">
-    <div class="card game-card">
-      <h2 class="play-title">Guess the Word</h2>
-
-      <div id="game-board" class="board"></div>
-
-      <div id="message" class="message"></div>
-      <p class="instruction">Ketik pakai keyboard fisik, tekan Enter untuk submit.</p>
-    </div>
-
-    {% if request.args.get('bundle') %}
-    <div class="card solver-embed-card">
-      <div class="solver-embed-head">
-        <h2>Solver</h2>
-        <a class="btn btn-home" href="/solve?len={{ length }}" target="_blank" rel="noopener">Buka tab baru ↗</a>
+  <!-- Game Card (Static Layout) -->
+  <div class="game-container-static">
+    <div class="card game-card static-card">
+      
+      <!-- Header: Judul + Hint -->
+      <div class="game-header-row">
+          <h2 class="play-title">Guess the Word</h2>
+          <button id="hintBtn" class="btn btn-hint" disabled>💡 Hint</button>
       </div>
-      <iframe class="solver-iframe" src="/solve?len={{ length }}"></iframe>
+
+      <!-- Papan Game -->
+      <div id="game-board" class="board"></div>
+      
+      <!-- Pesan & Instruksi -->
+      <div class="status-area">
+        <div id="message" class="message"></div>
+      </div>
+
+      <!-- Keyboard -->
+      <div id="keyboard" class="keyboard"></div>
+      
+      <p class="instruction-static">Ketik pakai keyboard fisik / layar.</p>
     </div>
-    {% endif %}
   </div>
 </div>
 
 <canvas id="confettiCanvas" class="confetti-canvas"></canvas>
 
+<!-- MODAL GAME OVER -->
 <div id="endModal" class="modal-overlay" aria-hidden="true">
   <div class="modal card">
     <h3 id="endTitle">Selesai</h3>
     <p id="endDesc" class="subtitle"></p>
-
     <div class="modal-actions">
       <button class="btn btn-reset" id="playAgainBtn" type="button">Main lagi</button>
       <a class="btn btn-home" href="/">Kembali beranda</a>
@@ -60,18 +58,27 @@
   </div>
 </div>
 
+<!-- MODAL HINT -->
+<div id="hintModal" class="modal-overlay" aria-hidden="true" style="z-index: 70;">
+    <div class="modal card" style="max-width: 400px; text-align: center;">
+        <h3>Pilih Kartu</h3>
+        <p class="subtitle">Buka 1 huruf per giliran.</p>
+        <div id="hintCardsContainer" class="hint-grid"></div>
+        <div style="margin-top: 20px;">
+            <button class="btn btn-ghost" onclick="closeHintModal()">Tutup</button>
+        </div>
+    </div>
+</div>
+
 <script>
   (function () {
     const st = document.getElementById("pageState");
     window.WORD_LENGTH = parseInt(st.dataset.wordLength, 10);
-    window.BUNDLE = (st.dataset.bundle === "1");
   })();
 
   function updateGameConfig() {
     const newLen = document.getElementById('play-len-select').value;
-    const params = new URLSearchParams(window.location.search);
-    params.set('len', newLen);
-    window.location.href = window.location.pathname + '?' + params.toString();
+    window.location.href = `/play?len=${newLen}`;
   }
 </script>
 

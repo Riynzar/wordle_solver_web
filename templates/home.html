@@ -25,15 +25,15 @@
 
     <div class="form-row">
       <label>Mode</label>
+      <!-- Grid akan diperbaiki di CSS agar 50:50 -->
       <div class="segmented" role="tablist" aria-label="Mode">
         <button class="seg-btn active" data-mode="play" type="button">🎮 Wordle</button>
         <button class="seg-btn" data-mode="solve" type="button">🧩 Solver</button>
-        <button class="seg-btn" data-mode="both" type="button">🧠 Wordle + Solver</button>
       </div>
     </div>
 
     <button class="btn btn-primary btn-full" id="startBtn">Mainkan sekarang</button>
-    <p class="mini-note">Tip: mode “Wordle + Solver” akan menampilkan solver di samping game.</p>
+    <!-- Teks tip dihapus agar bersih -->
   </div>
 </div>
 
@@ -53,11 +53,9 @@
     const lang = document.getElementById("lang").value;
 
     if (selectedMode === "solve") {
-      window.location.href = `/solve?len=${len}&lang=${lang}`;
-    } else if (selectedMode === "both") {
-      window.location.href = `/play?len=${len}&lang=${lang}&bundle=1`;
+      window.location.href = `/solve?len=${len}`;
     } else {
-      window.location.href = `/play?len=${len}&lang=${lang}`;
+      window.location.href = `/play?len=${len}`;
     }
   });
 </script>

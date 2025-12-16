@@ -65,48 +65,60 @@ nav a {
 }
 
 .tile {
-    width: 50px;
-    height: 50px;
-    border: 2px solid #d3d6da;
+    width: 52px;  /* Samakan ukuran */
+    height: 52px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
-    font-weight: bold;
+    font-size: 1.5rem; /* Font besar */
+    font-weight: 800;  /* Bold */
     text-transform: uppercase;
+    
+    box-sizing: border-box;
+    border: 2px solid #d3d6da; /* Border abu */
+    border-radius: 8px; /* Rounded corner seperti di play */
+    background: #fff;
     cursor: pointer;
     user-select: none;
-    background: white;
+    transition: transform 0.3s; /* Untuk animasi flip */
 }
 
-.tile[data-state='grey'], .game-tile[data-state='grey'] { 
+/* Warna State Solver (dengan border hilang saat berwarna) */
+.tile[data-state='grey'] { 
     background-color: var(--grey); 
     border-color: var(--grey); 
-    color: white !important; 
+    color: white; 
 }
 
-.tile[data-state='yellow'], .game-tile[data-state='yellow'] { 
+.tile[data-state='yellow'] { 
     background-color: var(--yellow); 
     border-color: var(--yellow); 
-    color: white !important; 
+    color: white; 
 }
 
-.tile[data-state='green'], .game-tile[data-state='green'] { 
+.tile[data-state='green'] { 
     background-color: var(--green); 
     border-color: var(--green); 
-    color: white !important; 
+    color: white; 
 }
 
+/* Input di dalam tile solver */
 .tile-input {
-    width: 46px;
-    height: 46px;
+    width: 100%;
+    height: 100%;
     text-align: center;
-    font-size: 1.2rem;
-    font-weight: bold;
+    font-size: 1.5rem; /* Samakan font input */
+    font-weight: 800;
     border: none;
     outline: none;
     background: transparent;
     text-transform: uppercase;
+    color: inherit; /* Ikut warna parent (putih/hitam) */
+    font-family: 'Montserrat', sans-serif;
+}
+
+.tile.flip {
+    animation: flip 0.4s ease-in-out;
 }
 
 .btn {
@@ -195,7 +207,7 @@ select { padding: 10px 12px; border-radius: 10px; border: 1px solid #e6e6e6; fon
 
 .segmented {
   display: grid;
-  grid-template-columns: 1fr 1fr 1.2fr;
+  grid-template-columns: 1fr 1fr; 
   gap: 10px;
 }
 .seg-btn {
@@ -394,3 +406,305 @@ nav {
   justify-content: center;  
   gap: 180px;                
 }
+
+/* --- TAMBAHAN UNTUK UI BARU --- */
+
+/* Tombol Navigasi Kecil (Home & Reset) */
+.btn-home, .btn-reset {
+    text-decoration: none;
+    color: #555;
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 8px 16px;
+    border: 1px solid #e0e0e0;
+    border-radius: 20px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-home:hover, .btn-reset:hover {
+    background-color: #f8f9fa;
+    border-color: #ccc;
+    transform: translateY(-1px);
+}
+
+/* Dropdown Minimalis di Topbar */
+.minimal-select {
+    appearance: none;
+    -webkit-appearance: none;
+    padding: 8px 30px 8px 15px;
+    border-radius: 20px;
+    border: 1px solid #e0e0e0;
+    background-color: white;
+    font-family: inherit;
+    font-weight: 600;
+    color: #333;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23333%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px top 50%;
+    background-size: 10px auto;
+}
+
+.minimal-select:hover {
+    border-color: #bbb;
+}
+
+/* Styling Khusus Mode Bundle (Iframe) */
+.solver-embed-card {
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 600px;
+}
+
+.solver-embed-head {
+    padding: 15px 20px;
+    background: #fcfcfc;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.solver-embed-head h2 {
+    font-size: 1.2rem;
+    margin: 0;
+    color: #333;
+}
+
+.solver-iframe {
+    flex-grow: 1;
+    border: none;
+    width: 100%;
+    height: 100%;
+    background: #fff;
+}
+
+/* Penyesuaian Layout Play */
+.play-layout {
+    display: grid;
+    gap: 20px;
+    /* Default 1 kolom */
+    grid-template-columns: 1fr; 
+}
+
+/* Jika ada kelas .has-solver (mode bundle), ubah jadi 2 kolom */
+.play-layout.has-solver {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .play-layout.has-solver {
+        grid-template-columns: 1fr; /* Balik ke 1 kolom di HP */
+    }
+}
+
+/* --- HINT BUTTON --- */
+.btn-hint {
+    background-color: #f39c12; /* Warna Oranye */
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.btn-hint:hover { background-color: #e67e22; transform: scale(1.05); }
+.btn-hint:disabled { background-color: #ddd; cursor: not-allowed; transform: none; }
+
+/* --- HINT MODAL GRID --- */
+.hint-grid {
+    display: grid;
+    gap: 10px;
+    justify-content: center;
+    margin: 30px auto;
+    max-width: 100%;
+}
+
+/* --- FLIP CARD ANIMATION --- */
+.hint-card {
+    background-color: transparent;
+    width: 60px;
+    height: 80px;
+    perspective: 1000px; /* Efek 3D */
+    cursor: pointer;
+}
+
+.hint-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border-radius: 8px;
+}
+
+/* Class active saat diklik */
+.hint-card.flipped .hint-inner {
+    transform: rotateY(180deg);
+}
+
+.hint-front, .hint-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.5rem;
+    border-radius: 8px;
+}
+
+/* Sisi Depan (Tanda Tanya) */
+.hint-front {
+    background-color: #333;
+    color: white;
+}
+
+/* Sisi Belakang (Huruf Asli) */
+.hint-back {
+    background-color: #6aaa64; /* Hijau Wordle */
+    color: white;
+    transform: rotateY(180deg);
+    border: 2px solid #6aaa64;
+}
+
+/* Kalau kartu sudah dibuka, cursor jadi default */
+.hint-card.flipped { cursor: default; }
+
+/* --- VIRTUAL KEYBOARD --- */
+.keyboard {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 20px;
+    width: 100%;
+    user-select: none;
+}
+
+.keyboard-row {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+}
+
+.key {
+    font-family: inherit;
+    font-weight: bold;
+    border: none;
+    padding: 0;
+    margin: 0;
+    height: 58px;
+    border-radius: 4px;
+    cursor: pointer;
+    background-color: #d3d6da;
+    color: #000;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-transform: uppercase;
+    font-size: 1.2rem;
+    max-width: 45px; /* Lebar maksimal tombol huruf */
+    transition: background-color 0.2s;
+    touch-action: manipulation;
+}
+
+/* Tombol Enter & Backspace lebih lebar */
+.key-wide {
+    flex: 1.5;
+    max-width: 70px;
+    font-size: 0.8rem;
+}
+
+.key:active { background-color: #bbb; }
+
+/* Warna State Keyboard */
+.key[data-state='grey'] { background-color: var(--grey); color: white; }
+.key[data-state='yellow'] { background-color: var(--yellow); color: white; }
+.key[data-state='green'] { background-color: var(--green); color: white; }
+
+/* Responsive untuk HP */
+@media (max-width: 500px) {
+    .key { height: 50px; font-size: 1rem; padding: 0 4px; }
+    .key-wide { font-size: 0.7rem; }
+    .keyboard-row { gap: 4px; }
+}
+
+/* --- PERBAIKAN LAYOUT HINT AGAR STATIS --- */
+
+.game-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Tetap di tengah */
+    gap: 15px;
+    width: 100%;
+    margin-bottom: 20px;
+    position: relative;
+    flex-wrap: nowrap; /* PENTING: Mencegah tombol turun ke baris baru */
+}
+
+.play-title {
+    margin: 0;
+    font-size: 1.5rem;
+    white-space: nowrap; 
+    /* Opsional: Jika di HP layar sangat kecil, judul mengecil dikit */
+    flex-shrink: 1; 
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.btn-hint {
+    /* Ukuran Fix */
+    min-width: 90px;  /* Lebar minimal tetap */
+    height: 36px;     /* Tinggi tetap */
+    padding: 0 12px;
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    font-size: 0.9rem;
+    font-weight: 700;
+    white-space: nowrap;
+    
+    /* Supaya tidak gepeng */
+    flex-shrink: 0; 
+    
+    background-color: #f39c12; 
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-hint:hover { 
+    background-color: #e67e22; 
+    transform: scale(1.05); 
+}
+
+/* State Disabled (Abu-abu) */
+.btn-hint:disabled { 
+    background-color: #e0e0e0; 
+    color: #999;
+    cursor: not-allowed; 
+    transform: none; /* Jangan membesar saat disabled */
+    border: 1px solid #d0d0d0;
+}
+
