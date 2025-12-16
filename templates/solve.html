@@ -6,14 +6,17 @@
     <a href="/" class="btn-home">← Beranda</a>
     
     <div class="topbar-center">
-        <select class="minimal-select" onchange="window.location.href='/solve?len='+this.value">
+        <!-- Select Panjang Kata (Tetap Ada) -->
+        <select class="minimal-select" id="solve-len" onchange="updateSolverConfig()">
           <option value="4" {% if length==4 %}selected{% endif %}>4 letters</option>
           <option value="5" {% if length==5 %}selected{% endif %}>5 letters</option>
           <option value="6" {% if length==6 %}selected{% endif %}>6 letters</option>
         </select>
-        <select class="minimal-select">
-            <option>English</option>
-        </select>
+        
+        <!-- TAMPILAN BAHASA STATIS (BUKAN DROPDOWN) -->
+        <div class="lang-badge">
+            {% if lang == 'indonesia' %} 🇮🇩 Indo {% else %} 🇺🇸 Eng {% endif %}
+        </div>
     </div>
 
     <button class="btn btn-reset" onclick="window.location.reload()">↻ Reset</button>
@@ -24,8 +27,7 @@
       <h3>Input Constraints</h3>
       <span class="subtitle">Ketik kata, lalu <b>klik kotak</b> untuk ganti warna.</span>
 
-      <div id="board-container" class="board" style="margin-bottom: 20px;">
-        </div>
+      <div id="board-container" class="board" style="margin-bottom: 20px;"></div>
 
       <button class="btn btn-ghost btn-full" onclick="addSolverRow()" style="background:#eee; margin-bottom:10px;">+ Add Row</button>
       <button class="btn btn-primary btn-full" onclick="analyzeSolver()" style="width:100%">FIND WORDS</button>
@@ -40,5 +42,16 @@
   </div>
 </div>
 
-<script>window.WORD_LENGTH = {{ length }};</script>
+<script>
+    window.WORD_LENGTH = {{ length }};
+    // PENTING: Variabel ini dibaca oleh script.js untuk dikirim ke API
+    window.CURRENT_LANG = "{{ lang }}"; 
+
+    function updateSolverConfig() {
+        const l = document.getElementById('solve-len').value;
+        // Kita oper lang yang sedang aktif kembali ke URL
+        const g = "{{ lang }}"; 
+        window.location.href = `/solve?len=${l}&lang=${g}`;
+    }
+</script>
 {% endblock %}

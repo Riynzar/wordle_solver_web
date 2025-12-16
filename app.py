@@ -1,6 +1,5 @@
 import os
 from flask import Flask, render_template, request, jsonify, session
-# Pastikan folder logic ada dan ada file game.py serta solver.py di dalamnya
 from logic.game import WordleGame  
 from logic.solver import WordleCSP
 import random
@@ -39,30 +38,25 @@ def home():
 @app.route('/play')
 def play_page():
     length = int(request.args.get('len', 5))
-    lang = request.args.get('lang', 'english') 
     
-    if length not in [4, 5, 6]:
-        length = 5
-        
+    # LOGIKA BARU: Ambil lang dari URL, jika tidak ada ambil dari Session, default english
+    lang = request.args.get('lang', session.get('language', 'english'))
+    
+    # Simpan ke session agar persisten
+    session['language'] = lang
     session['mode'] = 'play'
     session['word_length'] = length
-    session['language'] = lang
     
-    # Gunakan Popular List untuk menentukan Jawaban
     words = get_popular_list(length, language=lang)
-    
     if not words:
-        # Fallback jika file popular belum ada, pakai full list
         words = get_word_list(length, language=lang)
         if not words:
-            return f"Database kata {length} huruf untuk bahasa {lang} tidak ditemukan! Cek folder library.", 404
+            return f"Database kata {length} huruf ({lang}) tidak ditemukan!", 404
         
-    target = random.choice(words) # Target akan dipilih dari kata populer
+    target = random.choice(words)
     session['target_word'] = target
     session['attempts'] = [] 
     session['game_over'] = False
-    
-    # Reset tracking hint di session agar aman
     session['hints_revealed'] = [] 
     
     return render_template('play.html', length=length, lang=lang)
@@ -70,7 +64,13 @@ def play_page():
 @app.route('/solve')
 def solve_page():
     length = int(request.args.get('len', 5))
-    lang = request.args.get('lang', 'english')
+    
+    # LOGIKA BARU: Ambil lang dari URL, jika tidak ada ambil dari Session, default english
+    lang = request.args.get('lang', session.get('language', 'english'))
+    
+    # Simpan ke session
+    session['language'] = lang
+    
     return render_template('solve.html', length=length, lang=lang)
 
 # --- API (Backend Logic) ---
@@ -82,73 +82,53 @@ def play_guess():
     
     target = session.get('target_word')
     length = session.get('word_length')
-    lang = session.get('language', 'english') 
+    lang = session.get('language', 'english') # Ambil dari session
     attempts = session.get('attempts', [])
     
-    if not target:
-        return jsonify({'error': 'Session expired, please refresh.'}), 400
-
-    if len(guess) != length:
-        return jsonify({'error': f'Panjang kata harus {length} huruf'}), 400
+    if not target: return jsonify({'error': 'Session expired.'}), 400
+    if len(guess) != length: return jsonify({'error': f'Panjang kata harus {length} huruf'}), 400
 
     valid_words = get_word_list(length, language=lang)
-    
     if guess not in valid_words:
-        msg = 'Kata tidak ditemukan di kamus!' if lang == 'indonesia' else 'Word not found in dictionary!'
+        msg = 'Kata tidak ditemukan!' if lang == 'indonesia' else 'Word not found!'
         return jsonify({'error': msg}), 400
 
     feedback = WordleGame.calculate_feedback(guess, target)
-    
     attempts.append(feedback)
     session['attempts'] = attempts 
-    
     won = (guess == target)
     game_over = won or len(attempts) >= 6
     
     return jsonify({
-        'feedback': feedback,
-        'won': won,
-        'game_over': game_over,
+        'feedback': feedback, 'won': won, 'game_over': game_over,
         'answer': target if game_over else None
     })
 
-# === FITUR TAMBAHAN: HINT (Dari app.py lain) ===
 @app.route('/api/play/hint', methods=['POST'])
 def play_hint():
     data = request.json
-    index = data.get('index') # Index huruf yang mau dibuka (0-5)
-    
+    index = data.get('index')
     target = session.get('target_word')
-    if not target: 
-        return jsonify({'error': 'Game over or session expired'}), 400
-    
+    if not target: return jsonify({'error': 'Game over'}), 400
     try:
-        # Ambil huruf yang benar pada posisi index tersebut
         letter = target[int(index)].upper()
-        
-        # Simpan state hint agar server tau user sudah buka hint apa saja (opsional)
-        revealed = session.get('hints_revealed', [])
-        if int(index) not in revealed:
-            revealed.append(int(index))
-            session['hints_revealed'] = revealed
-            
         return jsonify({'letter': letter})
-    except (ValueError, IndexError, TypeError):
-        return jsonify({'error': 'Index invalid'}), 400
-# =================================================
+    except: return jsonify({'error': 'Index invalid'}), 400
 
 @app.route('/api/solve/analyze', methods=['POST'])
 def solve_analyze():
     data = request.json
     length = data.get('length', 5)
     history = data.get('history', [])
+    
+    # Ambil lang dari JSON yang dikirim JS, atau fallback ke english
     lang = data.get('lang', 'english') 
     
     word_list = get_word_list(length, language=lang)
     popular_list = get_popular_list(length, language=lang)
     
     if not word_list:
-        return jsonify({'error': f'Dictionary not found for {lang} length {length}'}), 400
+        return jsonify({'error': f'Kamus {lang} {length} huruf tidak ditemukan.'}), 400
 
     solver = WordleCSP(word_list, popular_list)
     
@@ -159,32 +139,17 @@ def solve_analyze():
         return jsonify({'error': str(e)}), 400
 
     candidates = solver.domain
-    count = len(candidates)
     suggestions = []
     
     process_limit = min(len(candidates), 200) 
     for word in candidates[:process_limit]:
-        final_entropy_score = solver.calculate_score(word)
-        
-        score = int(final_entropy_score * 18) 
+        score = int(solver.calculate_score(word) * 18) 
         if score > 99: score = 99
         if score < 1: score = 1
-        
-        is_pop = word in solver.popular_set
-        
-        suggestions.append({
-            'word': word.upper(), 
-            'score': score,
-            'is_popular': is_pop
-        })
+        suggestions.append({'word': word.upper(), 'score': score})
         
     suggestions.sort(key=lambda x: x['score'], reverse=True)
-    
-    return jsonify({
-        'count': count,
-        'suggestions': suggestions[:50] 
-    })
+    return jsonify({'count': len(candidates), 'suggestions': suggestions[:50]})
 
 if __name__ == '__main__':
-    print("Starting Flask Server...")
     app.run(debug=True, port=5000)

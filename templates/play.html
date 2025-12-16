@@ -1,9 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="container" id="pageState" data-word-length="{{ length }}">
+<div class="container" id="pageState" data-word-length="{{ length }}" data-lang="{{ lang }}">
   
-  <!-- Topbar Navigasi -->
   <div class="topbar static-width">
     <a href="/" class="btn btn-home">← Beranda</a>
     
@@ -13,40 +12,33 @@
           <option value="5" {% if length==5 or not length %}selected{% endif %}>5 letters</option>
           <option value="6" {% if length==6 %}selected{% endif %}>6 letters</option>
         </select>
+
+        <!-- TAMPILAN BAHASA STATIS -->
+        <div class="lang-badge">
+            {% if lang == 'indonesia' %} 🇮🇩 Indo {% else %} 🇺🇸 Eng {% endif %}
+        </div>
     </div>
 
     <button class="btn btn-reset" id="resetBtn" type="button">↻ Reset</button>
   </div>
 
-  <!-- Game Card (Static Layout) -->
+  <!-- ... (SISA KODE SAMA SEPERTI SEBELUMNYA) ... -->
   <div class="game-container-static">
     <div class="card game-card static-card">
-      
-      <!-- Header: Judul + Hint -->
       <div class="game-header-row">
           <h2 class="play-title">Guess the Word</h2>
           <button id="hintBtn" class="btn btn-hint" disabled>💡 Hint</button>
       </div>
-
-      <!-- Papan Game -->
       <div id="game-board" class="board"></div>
-      
-      <!-- Pesan & Instruksi -->
-      <div class="status-area">
-        <div id="message" class="message"></div>
-      </div>
-
-      <!-- Keyboard -->
+      <div class="status-area"><div id="message" class="message"></div></div>
       <div id="keyboard" class="keyboard"></div>
-      
       <p class="instruction-static">Ketik pakai keyboard fisik / layar.</p>
     </div>
   </div>
 </div>
 
 <canvas id="confettiCanvas" class="confetti-canvas"></canvas>
-
-<!-- MODAL GAME OVER -->
+<!-- ... (KODE MODAL HINT DLL TETAP SAMA) ... -->
 <div id="endModal" class="modal-overlay" aria-hidden="true">
   <div class="modal card">
     <h3 id="endTitle">Selesai</h3>
@@ -58,15 +50,12 @@
   </div>
 </div>
 
-<!-- MODAL HINT -->
 <div id="hintModal" class="modal-overlay" aria-hidden="true" style="z-index: 70;">
     <div class="modal card" style="max-width: 400px; text-align: center;">
         <h3>Pilih Kartu</h3>
         <p class="subtitle">Buka 1 huruf per giliran.</p>
         <div id="hintCardsContainer" class="hint-grid"></div>
-        <div style="margin-top: 20px;">
-            <button class="btn btn-ghost" onclick="closeHintModal()">Tutup</button>
-        </div>
+        <div style="margin-top: 20px;"><button class="btn btn-ghost" onclick="closeHintModal()">Tutup</button></div>
     </div>
 </div>
 
@@ -74,12 +63,13 @@
   (function () {
     const st = document.getElementById("pageState");
     window.WORD_LENGTH = parseInt(st.dataset.wordLength, 10);
+    window.CURRENT_LANG = st.dataset.lang || 'english';
   })();
 
   function updateGameConfig() {
     const newLen = document.getElementById('play-len-select').value;
-    window.location.href = `/play?len=${newLen}`;
+    const currentLang = "{{ lang }}";
+    window.location.href = `/play?len=${newLen}&lang=${currentLang}`;
   }
 </script>
-
 {% endblock %}
